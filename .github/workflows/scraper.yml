@@ -1,0 +1,50 @@
+name: Apartment Bot Scraper
+
+on:
+  schedule:
+    - cron: '0 * * * *' # Runs every hour
+  workflow_dispatch: # Allows manual run from GitHub UI
+
+jobs:
+  run-scraper:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to commit db.json back
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Create state.json from Secret
+        run: |
+          if [ -n "${{ secrets.FB_STATE_JSON }}" ]; then
+            echo "${{ secrets.FB_STATE_JSON }}" > state.json
+          else
+            echo "Warning: FB_STATE_JSON secret is missing"
+          fi
+
+      - name: Run Scraper
+        run: npm start
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+      - name: Commit updated db.json
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add db.json
+          git commit -m "chore: update seen posts [skip ci]" || echo "No changes to commit"
+          git push

@@ -1,0 +1,61 @@
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { AppConfig } from './db';
+import dotenv from 'dotenv';
+dotenv.config();
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+
+export interface AnalysisResult {
+  isMatch: boolean;
+  price?: number;
+  rooms?: number;
+  location?: string;
+  contactDetails?: string;
+  reason?: string;
+}
+
+export async function analyzePost(postText: string, config: AppConfig): Promise<AnalysisResult> {
+  if (!process.env.GEMINI_API_KEY) {
+    console.error('Missing GEMINI_API_KEY');
+    return { isMatch: false, reason: 'Missing API Key' };
+  }
+
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+  const prompt = `
+אתה סוכן נדל"ן שתפקידו לנתח פוסטים של השכרת דירות בפייסבוק ולקבוע האם הדירה מתאימה לדרישות הלקוח.
+
+טקסט הפוסט:
+"""
+${postText}
+"""
+
+דרישות הלקוח:
+- ערים מבוקשות: ${config.cities.join(', ')}
+- מחיר מקסימלי: ${config.maxPrice} שקלים
+- דרישות חדרים: בין ${config.minRooms} ל-${config.maxRooms} חדרים
+- הדירה חייבת להתאים למגורים של זוג פלוס (כלומר דירה שלמה, ולא שותפים, חדר בודד, או סאבלט קצר מועד).
+- מילים שאם הן מופיעות בפוסט הדירה נפסלת: ${config.excludeKeywords.join(', ')}.
+
+אנא נתח את הפוסט והחזר את התשובה בפורמט JSON בלבד, בדיוק במבנה הבא (ללא טקסט נוסף לפני או אחרי):
+{
+  "isMatch": true/false,
+  "price": מחיר הדירה במספרים (אם לא צוין, כתוב null),
+  "rooms": מספר החדרים (אם לא צוין, כתוב null),
+  "location": "האזור / עיר ושכונה",
+  "contactDetails": "מספר טלפון או שם של בעל הנכס/מפרסם (אם אין בפוסט, כתוב null)",
+  "reason": "הסבר קצר בעברית למה הדירה מתאימה או למה היא נפסלה"
+}
+`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    // לנקות את הטקסט כדי להבטיח JSON תקין
+    const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(cleanJson) as AnalysisResult;
+  } catch (error) {
+    console.error('Error analyzing post with Gemini:', error);
+    return { isMatch: false, reason: 'שגיאה בניתוח הפוסט' };
+  }
+}
