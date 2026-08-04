@@ -1,8 +1,8 @@
 {
-  "cities": ["רמת גן"],
-  "maxPrice": 6000,
-  "minRooms": 2,
-  "maxRooms": 3,
+  "cities": ["רמת גן", "תל אביב", "גבעתיים", "הרצליה", "רעננה", "כפר סבא", "פתח תקווה", "רמת השרון", "הוד השרון"],
+  "maxPrice": 15000,
+  "minRooms": 1,
+  "maxRooms": 10,
   "keywords": [],
-  "excludeKeywords": ["שותף", "שותפים", "סאבלט", "לשותף"]
+  "excludeKeywords": []
 }
