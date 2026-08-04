@@ -1,7 +1,7 @@
 import { getConfig, getSeenPosts, addSeenPost } from './db';
 import { initBrowser, scrapeGroup } from './scraper';
 import { analyzePost } from './ai';
-import { sendNotification } from './telegram';
+import { sendNotification, sendSummary } from './telegram';
 
 const GROUPS = [
   '647901439404148',
@@ -18,6 +18,9 @@ async function main() {
   const { context, close } = await initBrowser();
   const page = await context.newPage();
 
+  let totalNewPosts = 0;
+  let totalMatches = 0;
+
   for (const groupId of GROUPS) {
     try {
       const posts = await scrapeGroup(groupId, page);
@@ -28,12 +31,14 @@ async function main() {
           continue;
         }
 
+        totalNewPosts++;
         console.log(`מנתח פוסט חדש: ${post.id}`);
         const analysis = await analyzePost(post.text, config);
         
         if (analysis.isMatch) {
           console.log(`נמצאה התאמה! הפוסט נשלח לטלגרם: ${post.url}`);
           await sendNotification(post.url, analysis);
+          totalMatches++;
         } else {
           console.log(`אין התאמה (${analysis.reason}).`);
         }
@@ -50,6 +55,10 @@ async function main() {
   }
 
   await close();
+  
+  // נשלח סיכום של הריצה לטלגרם כדי לדעת שהבוט פעיל
+  await sendSummary(totalNewPosts, totalMatches);
+  
   console.log('הסריקה הסתיימה בהצלחה.');
 }
 

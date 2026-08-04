@@ -35,3 +35,20 @@ ${postUrl}
     console.error('Failed to send telegram message:', error);
   }
 }
+
+export async function sendSummary(totalPosts: number, matchedPosts: number) {
+  if (!botToken || !chatId) return;
+
+  const message = `
+✅ סריקת הדירות הסתיימה בהצלחה!
+סך הכל נסרקו בסיבוב הזה: ${totalPosts} פוסטים חדשים.
+מתוכם נמצאו מתאימים להגדרות: ${matchedPosts} דירות.
+`;
+
+  try {
+    await bot.telegram.sendMessage(chatId, message);
+    console.log('Summary message sent.');
+  } catch (error) {
+    console.error('Failed to send summary message:', error);
+  }
+}
