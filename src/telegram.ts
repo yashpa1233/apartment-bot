@@ -1,4 +1,5 @@
 import { Telegraf } from 'telegraf';
+import { getLastScannedLinks } from './db';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -51,4 +52,41 @@ export async function sendSummary(totalPosts: number, matchedPosts: number) {
   } catch (error) {
     console.error('Failed to send summary message:', error);
   }
+}
+
+export function setupBotListeners() {
+  if (!botToken) return;
+
+  bot.hears('מה סרקת?', async (ctx) => {
+    const links = await getLastScannedLinks();
+    if (links.length === 0) {
+      return ctx.reply('לא נסרקו דירות חדשות בריצה האחרונה, או שהמאגר ריק.');
+    }
+    
+    const text = 'הנה הקישורים לפוסטים שסרקתי בריצה האחרונה:\n\n' + links.join('\n\n');
+    
+    // טלגרם מגביל הודעה ל-4096 תווים, לכן נבדוק את האורך
+    if (text.length > 4000) {
+      await ctx.replyWithDocument({ 
+        source: Buffer.from(links.join('\n'), 'utf-8'), 
+        filename: 'scanned_links.txt' 
+      }, { caption: 'הקובץ מכיל את כל הקישורים שנסרקו' });
+    } else {
+      await ctx.reply(text, { disable_web_page_preview: true });
+    }
+  });
+}
+
+export function startBot() {
+  if (!botToken) return;
+  setupBotListeners();
+  bot.launch();
+  console.log('Telegram bot is listening for commands...');
+}
+
+export function stopBot() {
+  if (!botToken) return;
+  try {
+    bot.stop('SIGINT');
+  } catch(e) {}
 }

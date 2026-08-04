@@ -1,7 +1,7 @@
-import { getConfig, getSeenPosts, addSeenPost } from './db';
+import { getConfig, getSeenPosts, addSeenPost, saveLastScannedLinks } from './db';
 import { initBrowser, scrapeGroup } from './scraper';
 import { analyzePost } from './ai';
-import { sendNotification, sendSummary } from './telegram';
+import { sendNotification, sendSummary, startBot, stopBot } from './telegram';
 
 const GROUPS = [
   '647901439404148',
@@ -12,6 +12,10 @@ const GROUPS = [
 
 async function main() {
   console.log('מתחיל ריצת סריקה...');
+  
+  // מתחילים להאזין לפקודות (יענה על הודעות שנשלחו אליו מאז הריצה הקודמת)
+  startBot();
+
   const config = await getConfig();
   const seenPosts = await getSeenPosts();
   
@@ -20,6 +24,7 @@ async function main() {
 
   let totalNewPosts = 0;
   let totalMatches = 0;
+  const currentScannedLinks: string[] = [];
 
   for (const groupId of GROUPS) {
     try {
@@ -32,6 +37,8 @@ async function main() {
         }
 
         totalNewPosts++;
+        currentScannedLinks.push(post.url);
+        
         console.log(`מנתח פוסט חדש: ${post.id}`);
         const analysis = await analyzePost(post.text, config);
         
@@ -46,8 +53,8 @@ async function main() {
         // מוסיפים למאגר כדי לא לסרוק שוב, גם אם לא מתאים, כדי לחסוך קריאות ל-AI
         await addSeenPost(post.id);
         
-        // השהייה קטנה בין קריאות ל-API למניעת חסימות
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // השהייה של 5 שניות בין קריאות ל-API למניעת חסימות (הגבלה של 15 בקשות בדקה בחינם)
+        await new Promise(resolve => setTimeout(resolve, 5000));
       }
     } catch (error) {
       console.error(`שגיאה בסריקת קבוצה ${groupId}:`, error);
@@ -56,8 +63,16 @@ async function main() {
 
   await close();
   
+  // נשמור את הקישורים של הריצה הזו כדי שהבוט יוכל לענות על "מה סרקת?"
+  if (currentScannedLinks.length > 0) {
+    await saveLastScannedLinks(currentScannedLinks);
+  }
+  
   // נשלח סיכום של הריצה לטלגרם כדי לדעת שהבוט פעיל
   await sendSummary(totalNewPosts, totalMatches);
+  
+  // מכבים את ההאזנה לבוט לפני שמסיימים את הסקריפט
+  stopBot();
   
   console.log('הסריקה הסתיימה בהצלחה.');
 }

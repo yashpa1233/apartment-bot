@@ -24,10 +24,43 @@ export async function getSeenPosts(): Promise<string[]> {
 }
 
 export async function addSeenPost(postId: string): Promise<void> {
-  const seenPosts = await getSeenPosts();
-  if (!seenPosts.includes(postId)) {
-    seenPosts.push(postId);
-    await fs.writeFile(DB_PATH, JSON.stringify({ seenPosts }, null, 2));
+  try {
+    const data = await fs.readFile(DB_PATH, 'utf-8');
+    const parsed = JSON.parse(data);
+    const seenPosts = parsed.seenPosts || [];
+    if (!seenPosts.includes(postId)) {
+      seenPosts.push(postId);
+      parsed.seenPosts = seenPosts;
+      await fs.writeFile(DB_PATH, JSON.stringify(parsed, null, 2));
+    }
+  } catch (error) {
+    console.error('Error saving seen post:', error);
+  }
+}
+
+export async function getLastScannedLinks(): Promise<string[]> {
+  try {
+    const data = await fs.readFile(DB_PATH, 'utf-8');
+    const parsed = JSON.parse(data);
+    return parsed.lastScannedLinks || [];
+  } catch (error) {
+    return [];
+  }
+}
+
+export async function saveLastScannedLinks(links: string[]): Promise<void> {
+  try {
+    let parsed: any = {};
+    try {
+      const data = await fs.readFile(DB_PATH, 'utf-8');
+      parsed = JSON.parse(data);
+    } catch (e) {
+      parsed = { seenPosts: [] };
+    }
+    parsed.lastScannedLinks = links;
+    await fs.writeFile(DB_PATH, JSON.stringify(parsed, null, 2));
+  } catch (error) {
+    console.error('Error saving last scanned links:', error);
   }
 }
 
