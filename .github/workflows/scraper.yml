@@ -13,10 +13,10 @@ jobs:
       
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
 
@@ -27,9 +27,11 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Create state.json from Secret
+        env:
+          FB_STATE_JSON_CONTENT: ${{ secrets.FB_STATE_JSON }}
         run: |
-          if [ -n "${{ secrets.FB_STATE_JSON }}" ]; then
-            echo "${{ secrets.FB_STATE_JSON }}" > state.json
+          if [ -n "$FB_STATE_JSON_CONTENT" ]; then
+            echo "$FB_STATE_JSON_CONTENT" > state.json
           else
             echo "Warning: FB_STATE_JSON secret is missing"
           fi
