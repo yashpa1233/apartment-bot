@@ -46,8 +46,9 @@ ${postText}
 }
 `;
 
-  const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-pro'];
+  const modelsToTry = ['gemini-1.5-pro', 'gemini-pro', 'gemini-2.0-flash', 'gemini-1.5-flash'];
   let result;
+  let lastError;
   
   for (const modelName of modelsToTry) {
     try {
@@ -55,16 +56,14 @@ ${postText}
       result = await model.generateContent(prompt);
       break; // הצלחנו! נצא מהלולאה
     } catch (e: any) {
-      if (e.status === 404) {
-        console.warn(`Model ${modelName} not found, trying next...`);
-        continue;
-      }
-      throw e; // שגיאה אחרת (כמו הרשאה), נזרוק אותה החוצה
+      console.warn(`Model ${modelName} failed with status ${e.status}, trying next...`);
+      lastError = e;
+      continue;
     }
   }
 
   if (!result) {
-    console.error('All models failed with 404 Not Found.');
+    console.error('All models failed. Last error:', lastError?.message);
     return { isMatch: false, reason: 'שגיאת מודל ב-AI' };
   }
 
