@@ -41,9 +41,12 @@ export async function scrapeGroup(groupId: string, page: Page): Promise<FBPost[]
   // Wait a few seconds for the React app to render the feed
   await page.waitForTimeout(5000);
   
-  // Scroll down a bit to trigger lazy loading if needed
-  await page.mouse.wheel(0, 1000);
-  await page.waitForTimeout(2000);
+  // נגלול למטה מספר פעמים כדי לטעון עוד פוסטים (המטרה היא להגיע לפחות ל-5 כפי שביקשת)
+  for (let i = 0; i < 5; i++) {
+    await page.keyboard.press('PageDown');
+    await page.keyboard.press('PageDown');
+    await page.waitForTimeout(1500);
+  }
 
   const posts = await page.evaluate((gid) => {
     const results: { id: string; url: string; text: string }[] = [];
