@@ -20,8 +20,6 @@ export async function analyzePost(postText: string, config: AppConfig): Promise<
     return { isMatch: false, reason: 'Missing API Key' };
   }
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
   const prompt = `
 אתה סוכן נדל"ן שתפקידו לנתח פוסטים של השכרת דירות בפייסבוק ולקבוע האם הדירה מתאימה לדרישות הלקוח.
 
@@ -48,8 +46,29 @@ ${postText}
 }
 `;
 
+  const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-pro'];
+  let result;
+  
+  for (const modelName of modelsToTry) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName });
+      result = await model.generateContent(prompt);
+      break; // הצלחנו! נצא מהלולאה
+    } catch (e: any) {
+      if (e.status === 404) {
+        console.warn(`Model ${modelName} not found, trying next...`);
+        continue;
+      }
+      throw e; // שגיאה אחרת (כמו הרשאה), נזרוק אותה החוצה
+    }
+  }
+
+  if (!result) {
+    console.error('All models failed with 404 Not Found.');
+    return { isMatch: false, reason: 'שגיאת מודל ב-AI' };
+  }
+
   try {
-    const result = await model.generateContent(prompt);
     const text = result.response.text();
     // לנקות את הטקסט כדי להבטיח JSON תקין
     const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
