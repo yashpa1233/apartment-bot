@@ -13,6 +13,10 @@ const GROUPS = [
 async function main() {
   console.log('מתחיל ריצת סריקה...');
   
+  // דיבאג קטן לראות באיזה מפתח גיטהאב משתמש
+  const key = process.env.GEMINI_API_KEY || '';
+  console.log('API Key starts with:', key.substring(0, 5));
+  
   // מתחילים להאזין לפקודות (יענה על הודעות שנשלחו אליו מאז הריצה הקודמת)
   startBot();
 
