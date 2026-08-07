@@ -41,11 +41,19 @@ export async function scrapeGroup(groupId: string, page: Page): Promise<FBPost[]
   // Wait a few seconds for the React app to render the feed
   await page.waitForTimeout(5000);
   
-  // נגלול למטה מספר פעמים כדי לטעון עוד פוסטים (המטרה היא להגיע לפחות ל-5 כפי שביקשת)
-  for (let i = 0; i < 5; i++) {
+  // נגלול למטה דינמית כדי להבטיח לפחות 10 פוסטים כפי שביקשת
+  let previousHeight = 0;
+  for (let i = 0; i < 20; i++) {
     await page.keyboard.press('PageDown');
     await page.keyboard.press('PageDown');
     await page.waitForTimeout(1500);
+    
+    const postCount = await page.evaluate(() => document.querySelectorAll('div[role="article"]').length);
+    if (postCount >= 12) break; // We have enough posts
+    
+    const currentHeight = await page.evaluate(() => document.body.scrollHeight);
+    if (currentHeight === previousHeight && i > 5) break; // Hit the bottom
+    previousHeight = currentHeight;
   }
 
   const posts = await page.evaluate((gid) => {
