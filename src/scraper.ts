@@ -87,8 +87,14 @@ export async function scrapeGroup(groupId: string, page: Page): Promise<FBPost[]
 
       // If we couldn't find a direct permalink with ID, we might need a fallback,
       // but for now we'll only collect posts we can uniquely identify.
-      if (postId && text) {
-        results.push({ id: postId, url: postUrl, text });
+      if (postId) {
+        // מגבילים ל-1500 תווים כדי לא לשלוח שרשורי תגובות ארוכים שעולים הרבה כסף ב-API
+        const fullText = (article as HTMLElement).innerText;
+        results.push({
+          id: postId,
+          url: postUrl,
+          text: fullText.length > 1500 ? fullText.substring(0, 1500) + '...' : fullText
+        });
       }
     }
     
