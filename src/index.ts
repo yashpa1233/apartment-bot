@@ -58,8 +58,8 @@ async function main() {
         // מוסיפים למאגר כדי לא לסרוק שוב, גם אם לא מתאים, כדי לחסוך קריאות ל-AI
         await addSeenPost(post.id);
         
-        // השהייה של 5 שניות בין קריאות ל-API למניעת חסימות (הגבלה של 15 בקשות בדקה בחינם)
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        // השהייה של 10 שניות בין קריאות ל-API למניעת חסימות (הגבלה של 15 בקשות בדקה בחינם)
+        await new Promise(resolve => setTimeout(resolve, 10000));
       }
     } catch (error) {
       console.error(`שגיאה בסריקת קבוצה ${groupId}:`, error);
